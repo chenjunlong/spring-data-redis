@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:cache="http://www.springframework.org/schema/cache" xmlns:c="http://www.springframework.org/schema/c"
+	xmlns:context="http://www.springframework.org/schema/context" xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.2.xsd
+	http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.2.xsd
+	http://www.springframework.org/schema/cache http://www.springframework.org/schema/cache/spring-cache.xsd
+	http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.2.xsd">
+
+	<!-- redis 序列化方式 -->
+	<bean id="jdkSerializer"
+		class="org.springframework.data.redis.serializer.JdkSerializationRedisSerializer" />
+	<bean id="stringRedisSerializer"
+		class="org.springframework.data.redis.serializer.StringRedisSerializer" />
+	<!-- redis end 序列化方式 -->
+
+	<bean id="redisTemplate" class="org.springframework.data.redis.core.RedisTemplate"
+		p:connection-factory-ref="jedisConnectionFactory">
+		<!-- 开启事务支持 -->
+		<property name="enableTransactionSupport" value="true" />
+		<property name="keySerializer" ref="stringRedisSerializer" />
+		<property name="valueSerializer" ref="jdkSerializer" />
+		<property name="hashKeySerializer" ref="stringRedisSerializer" />
+		<property name="hashValueSerializer" ref="jdkSerializer" />
+	</bean>
+
+	<bean id="stringRedisTemplate" class="org.springframework.data.redis.core.StringRedisTemplate"
+		p:connection-factory-ref="jedisConnectionFactory">
+		<!-- 开启事务支持 -->
+		<property name="enableTransactionSupport" value="true" />
+	</bean>
+
+	<!-- redis对java集合的支持 -->
+	<bean id="deque"
+		class="org.springframework.data.redis.support.collections.DefaultRedisList">
+		<constructor-arg ref="redisTemplate" />
+		<!-- Redis List name -->
+		<constructor-arg value="demoQueue" />
+	</bean>
+
+	<bean id="map"
+		class="org.springframework.data.redis.support.collections.DefaultRedisMap">
+		<constructor-arg ref="redisTemplate" />
+		<!-- Redis Map name -->
+		<constructor-arg value="demoMap" />
+	</bean>
+	<!-- redis对java集合的支持end -->
+
+	<!-- Spring Cache Redis -->
+	<cache:annotation-driven />
+	<bean id="cacheManager" class="org.springframework.data.redis.cache.RedisCacheManager">
+		<constructor-arg ref="redisTemplate" />
+	</bean>
+
+	<!-- redis订阅 -->	
+	<bean id="messageListener"
+		class="org.springframework.data.redis.listener.adapter.MessageListenerAdapter">
+		 <property name="delegate">
+		 	<bean id="demoListener" class="com.demo.lisenter.DemoListener" />
+		 </property>
+        <property name="serializer" ref="jdkSerializer" />
+	</bean>
+
+	<bean id="redisContainer"
+		class="org.springframework.data.redis.listener.RedisMessageListenerContainer">
+		<property name="connectionFactory" ref="jedisConnectionFactory" />
+		<property name="messageListeners">
+			<map>
+				<entry key-ref="messageListener">
+					<bean class="org.springframework.data.redis.listener.ChannelTopic">
+						<constructor-arg value="demo:message" />
+					</bean>
+				</entry>
+			</map>
+		</property>
+	</bean>
+</beans>
