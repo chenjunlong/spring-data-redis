@@ -89,6 +89,11 @@ public class DemoTest {
 		long end = System.currentTimeMillis();
 		System.out.println("millis:" + (end - start));
 	}
+	
+	@Test
+	public void updateUserTransactionalSupport(){
+		userService.updateUserTransactionalSupport("test1001","13121771001");
+	}
 
 	@Test
 	public void pipelined() {

@@ -2,9 +2,11 @@ package com.demo.service.impl;
 
 import javax.annotation.Resource;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheConfig;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +21,8 @@ public class UserServiceImpl implements UserServices {
 
 	@Resource(name = "userDao")
 	private UserDao userDao;
+	@Autowired
+	private RedisTemplate<String, Object> redisTemplate;
 
 	@Cacheable(key = "'user:cache:'+#mobile", condition = "#mobile ne null and #mobile ne ''", unless = "#result eq '' or #result eq null")
 	@Transactional(propagation = Propagation.NOT_SUPPORTED, readOnly = true)
@@ -37,5 +41,13 @@ public class UserServiceImpl implements UserServices {
 	@Override
 	public void updateNameByMobile(String name, String mobile) {
 		userDao.updateNameByMobile(name, mobile);
+	}
+
+	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = RuntimeException.class)
+	@Override
+	public void updateUserTransactionalSupport(String name, String mobile) {
+		userDao.updateNameByMobile(name, mobile);
+		redisTemplate.opsForValue().set("updateUserTransactionalSupport", "set");
+		//throw new RuntimeException("test...");
 	}
 }
